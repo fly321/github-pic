@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub图床</title>
+    <!-- 引入Vue -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <!-- 引入Element UI -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.13/lib/theme-chalk/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.13/lib/index.js"></script>
+    <!-- 引入Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios@0.21.1/dist/axios.min.js"></script>
+    <!-- 引入Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .upload-container {
+            margin-top: 2rem;
+        }
+        .result-container {
+            margin-top: 2rem;
+        }
+        .url-display {
+            word-break: break-all;
+            margin-top: 1rem;
+        }
+        .title {
+            background: linear-gradient(to right, #4b6cb7, #182848);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .el-upload-dragger {
+            background: #f8fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        .el-upload-dragger:hover {
+            border-color: #4b6cb7;
+            background: #edf2f7;
+        }
+        .el-upload__text em {
+            color: #4b6cb7;
+            font-style: normal;
+            font-weight: 600;
+        }
+        .el-upload__tip {
+            color: #718096;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <h1 class="text-4xl font-bold title text-center mb-8">GitHub图床</h1>
+        
+        <!-- 仓库选择 -->
+        <div class="card">
+            <el-form :model="form" label-width="100px">
+                <el-form-item label="选择仓库">
+                    <el-select v-model="form.repo" placeholder="请选择仓库" @change="handleRepoChange" class="w-full">
+                        <el-option
+                            v-for="repo in repositories"
+                            :key="repo.full_name"
+                            :label="repo.name"
+                            :value="repo.full_name">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+
+                <el-form-item label="使用CDN">
+                    <el-switch v-model="form.useCDN" active-color="#4b6cb7"></el-switch>
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <!-- 文件上传 -->
+        <div class="upload-container card">
+            <el-upload
+                class="upload-demo"
+                drag
+                action="/api/upload"
+                :data="uploadData"
+                :on-success="handleUploadSuccess"
+                :on-error="handleUploadError"
+                :before-upload="beforeUpload">
+                <i class="el-icon-upload text-4xl text-gray-400"></i>
+                <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                <div class="el-upload__tip" slot="tip">只能上传jpg/png/gif文件</div>
+            </el-upload>
+        </div>
+
+        <!-- 上传结果 -->
+        <div v-if="uploadResult" class="result-container card">
+            <el-card shadow="never">
+                <div slot="header" class="flex items-center">
+                    <span class="text-lg font-semibold text-gray-800">上传成功</span>
+                </div>
+                <div>
+                    <p class="text-gray-600">文件名：{{ uploadResult.name }}</p>
+                    <p class="text-gray-600">文件大小：{{ (uploadResult.size / 1024).toFixed(2) }} KB</p>
+                    <p class="text-gray-600">上传IP：{{ uploadResult.client_ip }}</p>
+                    <p class="text-gray-600">图片尺寸：{{ uploadResult.width }} × {{ uploadResult.height }} 像素</p>
+                    <p class="text-gray-600 mt-2">图片URL：</p>
+                    <el-input
+                        type="textarea"
+                        :rows="2"
+                        v-model="uploadResult.url"
+                        readonly
+                        class="mt-2">
+                    </el-input>
+                    <el-button type="primary" size="small" class="mt-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                        @click="copyUrl">复制链接</el-button>
+                </div>
+            </el-card>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                repositories: [],
+                form: {
+                    repo: '',
+                    useCDN: true
+                },
+                uploadResult: null
+            },
+            computed: {
+                uploadData() {
+                    return {
+                        repo: this.form.repo,
+                        use_cdn: this.form.useCDN
+                    }
+                }
+            },
+            methods: {
+                // 加载仓库列表
+                async loadRepositories() {
+                    try {
+                        const response = await axios.get('/api/repositories')
+                        this.repositories = response.data
+                    } catch (error) {
+                        this.$message.error('加载仓库列表失败')
+                        console.error('加载仓库失败:', error)
+                    }
+                },
+                // 处理仓库选择
+                handleRepoChange(value) {
+                    console.log('选择的仓库:', value)
+                },
+                // 上传前验证
+                beforeUpload(file) {
+                    if (!this.form.repo) {
+                        this.$message.error('请先选择一个仓库')
+                        return false
+                    }
+                    const isImage = /\.(jpg|jpeg|png|gif)$/i.test(file.name)
+                    if (!isImage) {
+                        this.$message.error('只能上传图片文件!')
+                        return false
+                    }
+                    return true
+                },
+                // 上传成功处理
+                handleUploadSuccess(response, file) {
+                    this.uploadResult = response
+                    this.$message.success('上传成功')
+                },
+                // 上传失败处理
+                handleUploadError(err) {
+                    this.$message.error('上传失败: ' + (err.message || '未知错误'))
+                },
+                // 复制URL
+                copyUrl() {
+                    const input = document.createElement('textarea')
+                    input.value = this.uploadResult.url
+                    document.body.appendChild(input)
+                    input.select()
+                    document.execCommand('copy')
+                    document.body.removeChild(input)
+                    this.$message.success('链接已复制到剪贴板')
+                }
+            },
+            mounted() {
+                this.loadRepositories()
+            }
+        })
+    </script>
+</body>
+</html>
