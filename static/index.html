@@ -4,209 +4,324 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitHub图床</title>
-    <!-- 引入Vue -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
-    <!-- 引入Element UI -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.13/lib/theme-chalk/index.css">
-    <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.13/lib/index.js"></script>
-    <!-- 引入Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios@0.21.1/dist/axios.min.js"></script>
     <!-- 引入Tailwind CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            font-family: 'Inter', sans-serif;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <!-- Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4b6cb7',
+                        secondary: '#182848',
+                        neutral: '#f8fafc',
+                        'neutral-dark': '#e2e8f0'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'card': '0 10px 20px rgba(0, 0, 0, 0.1)',
+                        'card-hover': '0 15px 30px rgba(0, 0, 0, 0.15)'
+                    }
+                }
+            }
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        .card {
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            transition: transform 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        .upload-container {
-            margin-top: 2rem;
-        }
-        .result-container {
-            margin-top: 2rem;
-        }
-        .url-display {
-            word-break: break-all;
-            margin-top: 1rem;
-        }
-        .title {
-            background: linear-gradient(to right, #4b6cb7, #182848);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .el-upload-dragger {
-            background: #f8fafc;
-            border: 2px dashed #e2e8f0;
-            border-radius: 0.75rem;
-            transition: all 0.3s ease;
-        }
-        .el-upload-dragger:hover {
-            border-color: #4b6cb7;
-            background: #edf2f7;
-        }
-        .el-upload__text em {
-            color: #4b6cb7;
-            font-style: normal;
-            font-weight: 600;
-        }
-        .el-upload__tip {
-            color: #718096;
-            font-size: 0.875rem;
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .gradient-text {
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .card-transition {
+                transition: all 0.3s ease;
+            }
+            .upload-drag-hover {
+                border-color: #4b6cb7;
+                background: #edf2f7;
+            }
         }
     </style>
 </head>
-<body>
-    <div id="app" class="container">
-        <h1 class="text-4xl font-bold title text-center mb-8">GitHub图床</h1>
+<body class="bg-gradient-to-br from-neutral to-neutral-dark min-h-screen font-inter">
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold gradient-text bg-gradient-to-r from-primary to-secondary text-center mb-8">GitHub图床</h1>
         
         <!-- 仓库选择 -->
-        <div class="card">
-            <el-form :model="form" label-width="100px">
-                <el-form-item label="选择仓库">
-                    <el-select v-model="form.repo" placeholder="请选择仓库" @change="handleRepoChange" class="w-full">
-                        <el-option
-                            v-for="repo in repositories"
-                            :key="repo.full_name"
-                            :label="repo.name"
-                            :value="repo.full_name">
-                        </el-option>
-                    </el-select>
-                </el-form-item>
-
-                <el-form-item label="使用CDN">
-                    <el-switch v-model="form.useCDN" active-color="#4b6cb7"></el-switch>
-                </el-form-item>
-            </el-form>
+        <div class="bg-white rounded-xl shadow-card p-6 mb-6 card-transition hover:shadow-card-hover">
+            <div class="mb-4">
+                <label for="repo-select" class="block text-gray-700 font-medium mb-2">选择仓库</label>
+                <select id="repo-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all">
+                    <option value="">请选择仓库</option>
+                    <!-- 仓库选项将通过JavaScript动态填充 -->
+                </select>
+            </div>
+            
+            <div class="flex items-center">
+                <label for="cdn-toggle" class="block text-gray-700 font-medium mr-3">使用CDN</label>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="cdn-toggle" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+            </div>
         </div>
 
         <!-- 文件上传 -->
-        <div class="upload-container card">
-            <el-upload
-                class="upload-demo"
-                drag
-                action="/api/upload"
-                :data="uploadData"
-                :on-success="handleUploadSuccess"
-                :on-error="handleUploadError"
-                :before-upload="beforeUpload">
-                <i class="el-icon-upload text-4xl text-gray-400"></i>
-                <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-                <div class="el-upload__tip" slot="tip">只能上传jpg/png/gif文件</div>
-            </el-upload>
+        <div class="bg-white rounded-xl shadow-card p-6 mb-6 card-transition hover:shadow-card-hover">
+            <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center transition-all cursor-pointer hover:border-primary hover:bg-gray-50">
+                <i class="fa fa-cloud-upload text-5xl text-gray-400 mb-4"></i>
+                <p class="text-gray-600 mb-2">将文件拖到此处，或 <span class="text-primary font-medium">点击上传</span></p>
+                <p class="text-sm text-gray-500">只能上传jpg/png/gif文件</p>
+                <input type="file" id="file-input" class="hidden" accept="image/jpeg,image/png,image/gif">
+            </div>
         </div>
 
         <!-- 上传结果 -->
-        <div v-if="uploadResult" class="result-container card">
-            <el-card shadow="never">
-                <div slot="header" class="flex items-center">
-                    <span class="text-lg font-semibold text-gray-800">上传成功</span>
+        <div id="result-container" class="hidden bg-white rounded-xl shadow-card p-6 card-transition hover:shadow-card-hover">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">上传成功</h2>
+                <span id="upload-time" class="text-sm text-gray-500"></span>
+            </div>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-gray-600"><span class="font-medium">文件名：</span><span id="file-name"></span></p>
+                        <p class="text-gray-600"><span class="font-medium">文件大小：</span><span id="file-size"></span></p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600"><span class="font-medium">上传IP：</span><span id="client-ip"></span></p>
+                        <p class="text-gray-600"><span class="font-medium">图片尺寸：</span><span id="image-dimensions"></span></p>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-gray-600">文件名：{{ uploadResult.name }}</p>
-                    <p class="text-gray-600">文件大小：{{ (uploadResult.size / 1024).toFixed(2) }} KB</p>
-                    <p class="text-gray-600">上传IP：{{ uploadResult.client_ip }}</p>
-                    <p class="text-gray-600">图片尺寸：{{ uploadResult.width }} × {{ uploadResult.height }} 像素</p>
-                    <p class="text-gray-600 mt-2">图片URL：</p>
-                    <el-input
-                        type="textarea"
-                        :rows="2"
-                        v-model="uploadResult.url"
-                        readonly
-                        class="mt-2">
-                    </el-input>
-                    <el-button type="primary" size="small" class="mt-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
-                        @click="copyUrl">复制链接</el-button>
+                <div class="mt-4">
+                    <p class="text-gray-600 font-medium mb-2">图片URL：</p>
+                    <div class="relative">
+                        <textarea id="image-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none" rows="2" readonly></textarea>
+                        <button id="copy-btn" class="absolute top-2 right-2 px-3 py-1 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-copy mr-1"></i>复制链接
+                        </button>
+                    </div>
                 </div>
-            </el-card>
+                <div class="mt-4 flex justify-end">
+                    <button id="new-upload-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
+                        <i class="fa fa-plus-circle mr-1"></i>新上传
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载中状态 -->
+        <div id="loading-container" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-xl flex flex-col items-center">
+                <div class="w-16 h-16 border-4 border-gray-200 border-t-primary rounded-full animate-spin mb-4"></div>
+                <p class="text-gray-700 font-medium">正在上传...</p>
+            </div>
         </div>
     </div>
 
     <script>
-        new Vue({
-            el: '#app',
-            data: {
-                repositories: [],
-                form: {
-                    repo: '',
-                    useCDN: true
-                },
-                uploadResult: null
-            },
-            computed: {
-                uploadData() {
-                    return {
-                        repo: this.form.repo,
-                        use_cdn: this.form.useCDN
-                    }
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM元素
+            const repoSelect = document.getElementById('repo-select');
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            const resultContainer = document.getElementById('result-container');
+            const loadingContainer = document.getElementById('loading-container');
+            const copyBtn = document.getElementById('copy-btn');
+            const newUploadBtn = document.getElementById('new-upload-btn');
+            const cdnToggle = document.getElementById('cdn-toggle');
+            
+            // 仓库数据
+            let repositories = [];
+            
+            // 加载仓库列表
+            async function loadRepositories() {
+                try {
+                    const response = await fetch('/api/repositories');
+                    repositories = await response.json();
+                    
+                    // 填充仓库选择下拉框
+                    repositories.forEach(repo => {
+                        const option = document.createElement('option');
+                        option.value = repo.full_name;
+                        option.textContent = repo.name;
+                        repoSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    showNotification('加载仓库列表失败', 'error');
+                    console.error('加载仓库失败:', error);
                 }
-            },
-            methods: {
-                // 加载仓库列表
-                async loadRepositories() {
-                    try {
-                        const response = await axios.get('/api/repositories')
-                        this.repositories = response.data
-                    } catch (error) {
-                        this.$message.error('加载仓库列表失败')
-                        console.error('加载仓库失败:', error)
-                    }
-                },
-                // 处理仓库选择
-                handleRepoChange(value) {
-                    console.log('选择的仓库:', value)
-                },
-                // 上传前验证
-                beforeUpload(file) {
-                    if (!this.form.repo) {
-                        this.$message.error('请先选择一个仓库')
-                        return false
-                    }
-                    const isImage = /\.(jpg|jpeg|png|gif)$/i.test(file.name)
-                    if (!isImage) {
-                        this.$message.error('只能上传图片文件!')
-                        return false
-                    }
-                    return true
-                },
-                // 上传成功处理
-                handleUploadSuccess(response, file) {
-                    this.uploadResult = response
-                    this.$message.success('上传成功')
-                },
-                // 上传失败处理
-                handleUploadError(err) {
-                    this.$message.error('上传失败: ' + (err.message || '未知错误'))
-                },
-                // 复制URL
-                copyUrl() {
-                    const input = document.createElement('textarea')
-                    input.value = this.uploadResult.url
-                    document.body.appendChild(input)
-                    input.select()
-                    document.execCommand('copy')
-                    document.body.removeChild(input)
-                    this.$message.success('链接已复制到剪贴板')
-                }
-            },
-            mounted() {
-                this.loadRepositories()
             }
-        })
+            
+            // 显示通知
+            function showNotification(message, type = 'info') {
+                // 创建通知元素
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full opacity-0`;
+                
+                // 根据类型设置样式
+                if (type === 'success') {
+                    notification.classList.add('bg-green-500', 'text-white');
+                    notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+                } else if (type === 'error') {
+                    notification.classList.add('bg-red-500', 'text-white');
+                    notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+                } else {
+                    notification.classList.add('bg-blue-500', 'text-white');
+                    notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+                }
+                
+                // 添加到页面
+                document.body.appendChild(notification);
+                
+                // 显示通知
+                setTimeout(() => {
+                    notification.classList.remove('translate-x-full', 'opacity-0');
+                }, 10);
+                
+                // 自动关闭
+                setTimeout(() => {
+                    notification.classList.add('translate-x-full', 'opacity-0');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+            
+            // 处理文件上传
+            async function handleFileUpload(file) {
+                // 验证仓库选择
+                if (!repoSelect.value) {
+                    showNotification('请先选择一个仓库', 'error');
+                    return;
+                }
+                
+                // 验证文件类型
+                const isValidType = /\.(jpg|jpeg|png|gif)$/i.test(file.name);
+                if (!isValidType) {
+                    showNotification('只能上传图片文件!', 'error');
+                    return;
+                }
+                
+                // 显示加载状态
+                loadingContainer.classList.remove('hidden');
+                
+                try {
+                    // 创建表单数据
+                    const formData = new FormData();
+                    formData.append('repo', repoSelect.value);
+                    formData.append('use_cdn', cdnToggle.checked);
+                    formData.append('file', file);
+                    
+                    // 上传文件
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('上传失败');
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // 更新结果显示
+                    document.getElementById('file-name').textContent = result.name;
+                    document.getElementById('file-size').textContent = (result.size / 1024).toFixed(2) + ' KB';
+                    document.getElementById('client-ip').textContent = result.client_ip;
+                    document.getElementById('image-dimensions').textContent = `${result.width} × ${result.height} 像素`;
+                    document.getElementById('image-url').value = result.url;
+                    document.getElementById('upload-time').textContent = new Date().toLocaleString();
+                    
+                    // 显示结果容器
+                    resultContainer.classList.remove('hidden');
+                    
+                    // 滚动到结果区域
+                    resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    showNotification('上传成功', 'success');
+                } catch (error) {
+                    showNotification('上传失败: ' + (error.message || '未知错误'), 'error');
+                    console.error('上传错误:', error);
+                } finally {
+                    // 隐藏加载状态
+                    loadingContainer.classList.add('hidden');
+                }
+            }
+            
+            // 复制URL
+            function copyUrl() {
+                const textarea = document.getElementById('image-url');
+                textarea.select();
+                document.execCommand('copy');
+                
+                // 临时更改按钮文本
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fa fa-check mr-1"></i>已复制';
+                copyBtn.classList.remove('bg-primary');
+                copyBtn.classList.add('bg-green-500');
+                
+                // 恢复按钮文本
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.classList.remove('bg-green-500');
+                    copyBtn.classList.add('bg-primary');
+                }, 2000);
+                
+                showNotification('链接已复制到剪贴板', 'success');
+            }
+            
+            // 重置上传区域
+            function resetUpload() {
+                resultContainer.classList.add('hidden');
+                fileInput.value = '';
+            }
+            
+            // 事件监听器
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('upload-drag-hover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('upload-drag-hover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('upload-drag-hover');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    handleFileUpload(fileInput.files[0]);
+                }
+            });
+            
+            copyBtn.addEventListener('click', copyUrl);
+            
+            newUploadBtn.addEventListener('click', resetUpload);
+            
+            // 加载仓库
+            loadRepositories();
+        });
     </script>
 </body>
 </html>
+    
