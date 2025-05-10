@@ -1,0 +1,4 @@
+github:
+  token: "your_github_token"
+server:
+  port: ":8080"

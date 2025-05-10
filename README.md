@@ -28,7 +28,7 @@
 
 1. 克隆项目
 ```bash
-git clone https://github.com/yourusername/github-pic.git
+git clone https://github.com/fly321/github-pic.git
 cd github-pic
 ```
 
