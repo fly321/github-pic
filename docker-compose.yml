@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  github-pic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      # 挂载配置文件，方便修改配置而不需要重新构建镜像
+      - ./config.yaml:/app/config.yaml:ro
+    restart: unless-stopped
+    # 如果需要使用环境变量覆盖配置
+    # environment:
+    #   - GITHUB_TOKEN=your_github_token

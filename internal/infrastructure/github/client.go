@@ -6,14 +6,25 @@ import (
 	"github-pic/internal/domain/entity"
 	"github-pic/internal/infrastructure/config"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/go-github/v57/github"
 	"golang.org/x/oauth2"
 )
 
+// repoCache 仓库缓存结构
+type repoCache struct {
+	data      []*entity.Repository
+	timestamp time.Time
+	ttl       time.Duration
+}
+
 // Client GitHub客户端实现
 type Client struct {
-	client *github.Client
+	client     *github.Client
+	repoCache  *repoCache
+	cacheMutex sync.RWMutex
 }
 
 // NewClient 创建新的GitHub客户端
@@ -26,11 +37,23 @@ func NewClient() *Client {
 
 	return &Client{
 		client: github.NewClient(tc),
+		repoCache: &repoCache{
+			ttl: 5 * time.Minute, // 设置缓存有效期为5分钟
+		},
 	}
 }
 
-// ListRepositories 获取用户的仓库列表
+// ListRepositories 获取用户的仓库列表（带缓存）
 func (c *Client) ListRepositories() ([]*entity.Repository, error) {
+	// 尝试从缓存获取
+	c.cacheMutex.RLock()
+	if c.repoCache.data != nil && time.Since(c.repoCache.timestamp) < c.repoCache.ttl {
+		defer c.cacheMutex.RUnlock()
+		return c.repoCache.data, nil
+	}
+	c.cacheMutex.RUnlock()
+
+	// 缓存无效，从GitHub API获取
 	ctx := context.Background()
 	repos, _, err := c.client.Repositories.List(ctx, "", nil)
 	if err != nil {
@@ -47,6 +70,12 @@ func (c *Client) ListRepositories() ([]*entity.Repository, error) {
 			Private:     repo.GetPrivate(),
 		})
 	}
+
+	// 更新缓存
+	c.cacheMutex.Lock()
+	c.repoCache.data = result
+	c.repoCache.timestamp = time.Now()
+	c.cacheMutex.Unlock()
 
 	return result, nil
 }
@@ -76,7 +105,7 @@ func (c *Client) UploadImage(repo string, image *entity.Image, content []byte) e
 func (c *Client) GetImageURL(repo, filePath string, useCDN bool) string {
 	if useCDN {
 		// 使用jsDelivr CDN
-		return fmt.Sprintf("https://cdn.jsdelivr.net/gh/%s/%s", repo, filePath)
+		return fmt.Sprintf("https://cdn.jsdmirror.com/gh/%s/%s", repo, filePath)
 	}
 
 	// 使用GitHub原始URL

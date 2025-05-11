@@ -1,0 +1,35 @@
+# Git相关
+.git
+.gitignore
+
+# IDE相关
+.idea
+.vscode
+*.swp
+*.swo
+
+# 构建产物
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 测试文件
+*_test.go
+
+# 临时文件
+tmp/
+temp/
+
+# 日志文件
+*.log
+
+# 本地配置（可能包含敏感信息）
+# 注意：如果config.yaml包含敏感信息，应该在构建时通过环境变量注入
+# config.yaml
+
+# 其他不需要的文件
+README.md
+DOCKERFILE*
+.dockerignore
