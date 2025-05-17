@@ -1,4 +1,5 @@
 github:
   token: "your_github_token"
+  cdnurl: "https://cdn.jsdmirror.cn/gh/%s/%s"
 server:
   port: ":8080"

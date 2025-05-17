@@ -104,8 +104,9 @@ func (c *Client) UploadImage(repo string, image *entity.Image, content []byte) e
 // GetImageURL 获取图片的访问URL
 func (c *Client) GetImageURL(repo, filePath string, useCDN bool) string {
 	if useCDN {
-		// 使用jsDelivr CDN
-		return fmt.Sprintf("https://cdn.jsdmirror.cn/gh/%s/%s", repo, filePath)
+		// 输出cdn地址
+		// 使用配置文件中的CDN地址
+		return fmt.Sprintf(config.GetConfig().GitHub.Cdnurl, repo, filePath)
 	}
 
 	// 使用GitHub原始URL

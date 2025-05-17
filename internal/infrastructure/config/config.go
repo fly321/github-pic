@@ -1,19 +1,21 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/viper"
 )
 
-// Config 应用配置结构
+// Config 配置结构体
 type Config struct {
 	GitHub struct {
-		Token string `mapstructure:"token"`
+		Token  string `yaml:"token"`
+		Cdnurl string `yaml:"cdnurl"`
 	}
 	Server struct {
-		Port string `mapstructure:"port"`
+		Port string `yaml:"port"`
 	}
 }
 
@@ -57,5 +59,6 @@ server:
 
 // GetConfig 获取全局配置
 func GetConfig() *Config {
+	fmt.Printf("config: %+v\n", globalConfig)
 	return &globalConfig
 }
